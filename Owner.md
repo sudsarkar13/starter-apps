@@ -5,23 +5,27 @@ This guide provides instructions for setting up, developing, and publishing the 
 ## Setup for Development
 
 1. Clone the repository:
-   ```
+
+   ```sh
    git clone https://github.com/yourusername/create-next-shadcn.git
    cd create-next-shadcn
    ```
 
 2. Install dependencies:
-   ```
+
+   ```sh
    npm install
    ```
 
 3. Make the CLI executable:
-   ```
+
+   ```sh
    chmod +x cli.js
    ```
 
 4. Link the package locally for testing:
-   ```
+
+   ```node
    npm link
    ```
 
@@ -30,7 +34,8 @@ This guide provides instructions for setting up, developing, and publishing the 
 1. Make changes to `cli.js` as needed.
 
 2. Test your changes locally:
-   ```
+
+   ```node
    node cli.js test-project
    ```
 
@@ -41,7 +46,8 @@ This guide provides instructions for setting up, developing, and publishing the 
 1. Create an account on [npmjs.com](https://www.npmjs.com/) if you haven't already.
 
 2. Log in to your npm account in the terminal:
-   ```
+
+   ```node
    npm login
    ```
 
@@ -51,7 +57,8 @@ This guide provides instructions for setting up, developing, and publishing the 
    - Check that the `description`, `main`, and `keywords` fields are correctly set
 
 4. Publish the package:
-   ```
+
+   ```node
    npm publish
    ```
 

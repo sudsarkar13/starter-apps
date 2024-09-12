@@ -22,7 +22,7 @@ You don't need to install this package globally. You can use it directly with np
 
 Run the following command to create a new Next.js project with Shadcn UI:
 
-```
+```node
 npx create-next-shadcn your-project-name
 ```
 
