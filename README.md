@@ -26,4 +26,14 @@ Run the following command to create a new Next.js project with Shadcn UI:
 npx create-next-shadcn your-project-name
 ```
 
-Replace
+Replace `your-project-name` with the name of your project.
+
+## Changelog
+
+| Date       | Version | Changes                                                    |
+|------------|---------|-----------------------------------------------------------|
+| 2024-03-18 | 1.0.2   | - Added changelog to README                                |
+|            |         | - Fixed ES module import issue in cli.js                   |
+|            |         | - Updated package.json to include "type": "module"         |
+| 2024-03-17 | 1.0.1   | - Initial release of create-next-app-shadcn                |
+|            |         | - Basic functionality to create Next.js app with shadcn/ui |
