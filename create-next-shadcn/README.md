@@ -32,6 +32,8 @@ Replace `your-project-name` with the name of your project.
 
 | Date       | Version | Changes                                                    |
 |------------|---------|-----------------------------------------------------------|
+| 2024-03-18 | 1.0.4   | - Added alternative bin command for better compatibility   |
+|            |         | - Updated README files with latest changes                 |
 | 2024-03-18 | 1.0.3   | - Updated bin field in package.json for better compatibility |
 |            |         | - Improved error handling in cli.js                        |
 |            |         | - Updated README with more detailed usage instructions     |
