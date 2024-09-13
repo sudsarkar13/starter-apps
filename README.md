@@ -32,6 +32,9 @@ Replace `your-project-name` with the name of your project.
 
 | Date       | Version | Changes                                                    |
 |------------|---------|-----------------------------------------------------------|
+| 2024-03-18 | 1.0.3   | - Updated bin field in package.json for better compatibility |
+|            |         | - Improved error handling in cli.js                        |
+|            |         | - Updated README with more detailed usage instructions     |
 | 2024-03-18 | 1.0.2   | - Added changelog to README                                |
 |            |         | - Fixed ES module import issue in cli.js                   |
 |            |         | - Updated package.json to include "type": "module"         |
