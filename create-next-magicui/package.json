@@ -5,7 +5,9 @@
   "main": "cli.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "create-next-magicui": "node ./cli.js",
+    "next-magicui": "node ./cli.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +31,7 @@
   },
   "homepage": "https://github.com/sudsarkar13/starter-apps#readme",
   "bin": {
-    "create-next-magicui": "./cli.js"
+    "create-next-magicui": "./cli.js",
+    "next-magicui": "./cli.js"
   }
 }
