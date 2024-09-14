@@ -1,8 +1,9 @@
 {
   "name": "create-next-shadcn",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A CLI tool to quickly set up a Next.js project with Shadcn UI components.",
   "main": "cli.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -19,10 +20,7 @@
     "packages",
     "bundler",
     "next-shadcn-starter",
-    "shadcn",
-    "starter",
-    "with",
-    "NextJs"
+    "shadcn starter with NextJs"
   ],
   "author": "Sudeepta Sarkar <sudsarkar13@gmail.com>",
   "license": "MIT",
