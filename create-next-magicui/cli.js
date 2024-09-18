@@ -29,31 +29,26 @@ module.exports = {
   console.log('Created tailwind.config.js');
 }
 
-try {
-  const projectName = process.argv[2];
+function createProject(projectName) {
+  const currentDir = process.cwd();
+  const projectPath = currentDir;
   
-  if (!projectName) {
-    console.error('Error: Please provide a project name.');
-    console.log('Usage: node cli.js <project-name>');
-    process.exit(1);
-  }
+  console.log(`Setting up your Next.js project with shadcn in ${projectPath}...`);
 
-  const projectDir = path.join(process.cwd(), projectName);
+  // Create Next.js app in the current directory, explicitly using '.'
+  execSync(`npx create-next-app@latest .`, { stdio: 'inherit' });
 
-  if (fs.existsSync(projectDir)) {
-    if (!isDirEmpty(projectDir)) {
-      console.error(`Error: The directory '${projectName}' already exists and is not empty.`);
-      console.log('Please choose a different project name or remove the existing directory.');
-      process.exit(1);
-    }
-  } else {
-    fs.mkdirSync(projectDir);
-  }
+  // No need to change directory as we're already in the project directory
+}
 
-  process.chdir(projectDir);
+try {
+  const currentDir = process.cwd();
+  const projectName = path.basename(currentDir);
+  
+  console.log(`Using current directory: ${currentDir}`);
+  console.log(`Project name: ${projectName}`);
 
-  console.log(`Creating Next.js app in '${projectName}'...`);
-  execSync('npx create-next-app@latest .', { stdio: 'inherit' });
+  createProject(projectName);
 
   // Check if tailwind.config.js exists, create it if not
   if (!fs.existsSync('tailwind.config.js')) {

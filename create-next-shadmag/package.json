@@ -1,13 +1,11 @@
 {
-  "name": "create-next-magicui",
-  "version": "1.0.1",
-  "description": "A CLI tool to quickly set up a Next.js project with Magic UI components.",
+  "name": "create-next-shadmag",
+  "version": "1.0.2",
+  "description": "A CLI tool to quickly set up a Next.js project with Shadcn UI & Magic UI components.",
   "main": "cli.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "create-next-magicui": "node ./cli.js",
-    "next-magicui": "node ./cli.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -31,7 +29,6 @@
   },
   "homepage": "https://github.com/sudsarkar13/starter-apps#readme",
   "bin": {
-    "create-next-magicui": "./cli.js",
-    "next-magicui": "./cli.js"
+    "create-next-shadmag": "./cli.js"
   }
 }
