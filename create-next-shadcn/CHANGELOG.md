@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.5] - 2024-09-25
+
+### Added
+- Added `next-shadcn` command to create a Next.js project with Shadcn UI components
+- Implemented automatic setup of tailwind.config.js
+- Added all Shadcn components by default
+
+### Changed
+- Updated `cli.js` to use the current directory as the project root
 
 ## [1.0.4] - 2024-09-18
 
