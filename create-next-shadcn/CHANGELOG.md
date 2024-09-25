@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.5] - 2024-09-25
+## [1.0.7] - 2023-XX-XX
+
+### Added
+- Support for yarn, pnpm, and bun package managers
+- Minimum Node.js version requirement (14.0.0)
+
+### Changed
+- Simplified bin field in package.json
+- Updated keywords to include new package manager support
+
+## [1.0.6] - 2024-09-25
 
 ### Added
 - Added `next-shadcn` command to create a Next.js project with Shadcn UI components
