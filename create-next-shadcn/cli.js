@@ -3,6 +3,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import readline from 'readline';
 
 console.log('Setting up your Next.js project with shadcn...');
 
@@ -29,16 +30,35 @@ module.exports = {
   console.log('Created tailwind.config.js');
 }
 
-function createProject(projectName) {
+function createProject(projectName, useSupabase) {
   const currentDir = process.cwd();
   const projectPath = currentDir;
   
   console.log(`Setting up your Next.js project with shadcn in ${projectPath}...`);
 
-  // Create Next.js app in the current directory, explicitly using '.'
-  execSync(`npx create-next-app@latest .`, { stdio: 'inherit' });
+  // Create Next.js app in a new directory
+  if (useSupabase) {
+    execSync(`npx create-next-app -e with-supabase .`, { stdio: 'inherit' });
+  } else {
+    execSync(`npx create-next-app@latest .`, { stdio: 'inherit' });
+  }
 
-  // No need to change directory as we're already in the project directory
+  // Change directory to the newly created project
+  process.chdir(projectPath);
+}
+
+function askUserForSupabase() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question('Do you want to integrate Supabase? (y/n): ', (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === 'y');
+    });
+  });
 }
 
 try {
@@ -48,11 +68,20 @@ try {
   console.log(`Using current directory: ${currentDir}`);
   console.log(`Project name: ${projectName}`);
 
-  createProject(projectName);
+  // Ask user if they want to integrate Supabase
+  const useSupabase = await askUserForSupabase();
+
+  createProject(projectName, useSupabase);
 
   // Check if tailwind.config.js exists, create it if not
   if (!fs.existsSync('tailwind.config.js')) {
     createTailwindConfig();
+  }
+
+  // Remove existing components.json if it exists
+  if (fs.existsSync('components.json')) {
+    fs.unlinkSync('components.json');
+    console.log('Removed existing components.json');
   }
 
   console.log('Initializing shadcn...');
@@ -62,6 +91,10 @@ try {
   execSync('npx shadcn@latest add --all', { stdio: 'inherit' });
 
   console.log('Setup completed successfully!');
+  console.log(`Your new project is ready in the '${projectName}' directory.`);
+  console.log('To start developing, run the following commands:');
+  console.log(`  cd ${projectName}`);
+  console.log('  npm run dev');
 } catch (error) {
   console.error('An error occurred during setup:', error.message);
   process.exit(1);
