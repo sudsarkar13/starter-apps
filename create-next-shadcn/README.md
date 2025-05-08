@@ -11,6 +11,9 @@ A CLI tool to quickly set up a Next.js project with Shadcn UI components. This t
 - 🏗 Supports monorepo structure
 - 🔌 Optional Supabase integration
 - 📊 Multiple package manager support (npm, yarn, pnpm)
+- ⚡ Zero configuration required
+- 🎯 Interactive CLI experience
+- 🔄 Version management with tags (latest, beta, canary)
 
 ## Prerequisites
 
@@ -20,86 +23,104 @@ A CLI tool to quickly set up a Next.js project with Shadcn UI components. This t
   - yarn (v1.22 or later)
   - pnpm (v6 or later)
 
-## Installation
-
-You don't need to install this package globally. You can use it directly with npx:
+## Quick Start
 
 ```bash
+# Create a new project
+mkdir my-project
+cd my-project
+npx create-next-shadcn@latest
+```
+
+## Installation Options
+
+You can use different versions based on your needs:
+
+```bash
+# Latest stable version
+npx create-next-shadcn@latest
+
+# Beta version
+npx create-next-shadcn@beta
+
+# Canary version (bleeding edge)
 npx create-next-shadcn@canary
 ```
 
-## Usage
+## Command Line Options
 
-### Basic Usage
+```bash
+npx create-next-shadcn [options]
 
-1. Create a new directory for your project:
+Options:
+  -h, --help     Show help information
+  -v, --version  Show CLI version
+```
 
-   ```bash
-   mkdir my-project
-   cd my-project
-   ```
-
-2. Run the CLI:
-
-   ```bash
-   npx create-next-shadcn@canary
-   ```
-
-### Interactive Setup
+## Interactive Setup
 
 The CLI will guide you through the following options:
 
 1. **Package Manager Selection**
 
-   - Choose between npm, yarn, or pnpm
-   - Default: npm
+   - `npm` (default)
+   - `yarn`
+   - `pnpm`
 
 2. **Project Structure**
 
    - Standard Next.js project
-   - Monorepo structure (creates an `apps` directory)
+   - Monorepo structure with `apps` directory
 
 3. **Supabase Integration**
-   - Option to include Supabase setup
-   - Adds authentication and database configurations
+   - Optional authentication setup
+   - Database configuration
+   - Environment variables setup
 
 ### Project Structure
 
 #### Standard Structure
 
-```directory
+```
 my-project/
 ├── app/
+│   ├── layout.tsx
+│   └── page.tsx
 ├── components/
-│   └── ui/
+│   └── ui/          # Shadcn UI components
+├── lib/
+│   └── utils.ts
 ├── styles/
+│   └── globals.css
 ├── public/
 ├── tailwind.config.js
+├── next.config.js
+├── tsconfig.json
 ├── package.json
 └── components.json
 ```
 
 #### Monorepo Structure
 
-```directory
+```
 my-project/
 ├── apps/
 │   └── web/
 │       ├── app/
 │       ├── components/
 │       │   └── ui/
+│       ├── lib/
 │       ├── styles/
 │       ├── public/
 │       ├── tailwind.config.js
 │       └── package.json
+├── packages/        # Shared packages (optional)
 └── package.json
 ```
 
 ## Configuration
 
 ### Tailwind CSS
-
-The tool automatically configures Tailwind CSS with the following setup:
 
 ```javascript
 /** @type {import('tailwindcss').Config} */
@@ -116,16 +137,25 @@ module.exports = {
 };
 ```
 
-### Shadcn UI Components
+### Available Shadcn Components
 
-All Shadcn UI components are automatically installed and configured. You can find them in the `components/ui` directory.
+All components are automatically installed in `components/ui/`:
 
-## Development
+- Accordion
+- Alert Dialog
+- Button
+- Calendar
+- Card
+- Dropdown Menu
+- Form
+- Input
+- Modal
+- and more...
 
-After installation, you can start the development server:
+## Development Workflow
 
 ```bash
-# For standard projects
+# Start development server
 npm run dev
 # or
 yarn dev
@@ -143,20 +173,32 @@ npm run dev
 
 1. **Node Version Error**
 
-   - Error: "Node.js version 14.0.0 or higher is required"
-   - Solution: Update Node.js to a newer version
+   ```bash
+   Error: Node.js version 14.0.0 or higher is required
+   Solution: nvm install 14 && nvm use 14
+   ```
 
 2. **Directory Not Empty**
 
-   - Error: "Directory not empty"
-   - Solution: Use a new directory or remove existing files
+   ```bash
+   Error: Directory not empty
+   Solution: mkdir new-project && cd new-project
+   ```
 
 3. **Package Manager Conflicts**
-   - Solution: Use the same package manager throughout the project
+
+   ```bash
+   Error: Mixing package managers
+   Solution: Use the same package manager consistently
+   ```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
@@ -168,4 +210,6 @@ Sudeepta Sarkar ([@sudsarkar13](https://github.com/sudsarkar13))
 
 ## Support
 
-For issues and feature requests, please use the [GitHub Issues](https://github.com/sudsarkar13/starter-apps/issues) page.
+- 📚 [Documentation](https://github.com/sudsarkar13/starter-apps/tree/main/create-next-shadcn#readme)
+- 🐛 [Issue Tracker](https://github.com/sudsarkar13/starter-apps/issues)
+- 💬 [Discussions](https://github.com/sudsarkar13/starter-apps/discussions)
