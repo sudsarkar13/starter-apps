@@ -160,7 +160,9 @@ function showSpinner(text) {
 async function askForPackageManager() {
 	const prompt = new Select({
 		name: "package-manager",
-		message: "Choose a package manager:",
+		message:
+			"Choose a package manager:" +
+			chalk.gray("   Use ↑/↓ arrows to select, return to confirm"),
 		choices: ["npm", "yarn", "pnpm"],
 		styles: {
 			primary: chalk.cyan,
@@ -177,7 +179,9 @@ async function askForPackageManager() {
 async function askForProjectType() {
 	const prompt = new Select({
 		name: "project-type",
-		message: "Choose project type:",
+		message:
+			"Choose project type:" +
+			chalk.gray("   Use ↑/↓ arrows to select, return to confirm"),
 		choices: [
 			{ name: "standard", message: "Next.js" },
 			{ name: "monorepo", message: "Next.js (Monorepo)" },
@@ -197,7 +201,9 @@ async function askForProjectType() {
 async function askUserForSupabase() {
 	const prompt = new Toggle({
 		name: "supabase",
-		message: chalk.green("✓") + " Would you like to integrate Supabase?",
+		message:
+			"Would you like to integrate Supabase?" +
+			chalk.gray("   Use ←/→ arrows to toggle, return to confirm"),
 		enabled: "Yes",
 		disabled: "No",
 		styles: {
