@@ -3,10 +3,13 @@
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import readline from "readline";
 import semver from "semver";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import chalk from "chalk";
+import pkg from "enquirer";
+
+const { Select, Toggle } = pkg;
 
 // Get package.json for version info
 const __filename = fileURLToPath(import.meta.url);
@@ -124,28 +127,14 @@ function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 	} else {
 		const pmCommand =
 			packageManager === "yarn"
-				? "yarn create"
+				? "npx create-next-app@latest" // Use npx for yarn
 				: packageManager === "pnpm"
-				? "pnpm create"
+				? "pnpm create next-app@latest"
 				: "npx create-next-app@latest";
 		execSync(`${pmCommand} .`, { stdio: "inherit" });
 	}
 
 	process.chdir(projectPath);
-}
-
-function askUserForSupabase() {
-	const rl = readline.createInterface({
-		input: process.stdin,
-		output: process.stdout,
-	});
-
-	return new Promise((resolve) => {
-		rl.question("Do you want to integrate Supabase? (y/n): ", (answer) => {
-			rl.close();
-			resolve(answer.toLowerCase() === "y");
-		});
-	});
 }
 
 // Version check utility
@@ -168,37 +157,57 @@ function showSpinner(text) {
 }
 
 // Package manager selection
-function askForPackageManager() {
-	const rl = readline.createInterface({
-		input: process.stdin,
-		output: process.stdout,
+async function askForPackageManager() {
+	const prompt = new Select({
+		name: "package-manager",
+		message: "Choose a package manager:",
+		choices: ["npm", "yarn", "pnpm"],
+		styles: {
+			primary: chalk.cyan,
+			selected: chalk.green,
+			pointer: () => chalk.green("❯"),
+		},
 	});
 
-	return new Promise((resolve) => {
-		rl.question("Choose package manager (npm/yarn/pnpm): ", (answer) => {
-			rl.close();
-			const pm = answer.toLowerCase();
-			return resolve(pm === "yarn" ? "yarn" : pm === "pnpm" ? "pnpm" : "npm");
-		});
-	});
+	const answer = await prompt.run();
+	return answer;
 }
 
 // Project type selection
-function askForProjectType() {
-	const rl = readline.createInterface({
-		input: process.stdin,
-		output: process.stdout,
+async function askForProjectType() {
+	const prompt = new Select({
+		name: "project-type",
+		message: "Choose project type:",
+		choices: [
+			{ name: "standard", message: "Next.js" },
+			{ name: "monorepo", message: "Next.js (Monorepo)" },
+		],
+		styles: {
+			primary: chalk.cyan,
+			selected: chalk.green,
+			pointer: () => chalk.green("❯"),
+		},
 	});
 
-	return new Promise((resolve) => {
-		rl.question(
-			"Choose project type:\n1. Next.js\n2. Next.js (Monorepo)\nEnter (1/2): ",
-			(answer) => {
-				rl.close();
-				resolve(answer === "2");
-			}
-		);
+	const answer = await prompt.run();
+	return answer === "monorepo";
+}
+
+// Supabase integration prompt
+async function askUserForSupabase() {
+	const prompt = new Toggle({
+		name: "supabase",
+		message: chalk.green("✓") + " Would you like to integrate Supabase?",
+		enabled: "Yes",
+		disabled: "No",
+		styles: {
+			primary: chalk.cyan,
+			enabled: chalk.green,
+			disabled: chalk.red,
+		},
 	});
+
+	return await prompt.run();
 }
 
 try {
@@ -220,14 +229,20 @@ try {
 
 	// Show installation summary
 	console.log("\nInstallation Summary:");
-	console.log("-------------------");
-	console.log(`• Project Name: ${projectName}`);
-	console.log(`• Package Manager: ${packageManager}`);
+	console.log(chalk.cyan("-------------------"));
+	console.log(`• Project Name: ${chalk.green(projectName)}`);
+	console.log(`• Package Manager: ${chalk.green(packageManager)}`);
 	console.log(
-		`• Project Type: ${isMonorepo ? "Monorepo" : "Standard Next.js"}`
+		`• Project Type: ${chalk.green(
+			isMonorepo ? "Monorepo" : "Standard Next.js"
+		)}`
 	);
-	console.log(`• Supabase Integration: ${useSupabase ? "Yes" : "No"}`);
-	console.log("-------------------\n");
+	console.log(
+		`• Supabase Integration: ${
+			useSupabase ? chalk.green("Yes") : chalk.red("No")
+		}`
+	);
+	console.log(chalk.cyan("-------------------\n"));
 
 	// Start installation with progress indicator
 	const spinner = showSpinner("Creating project");
@@ -247,15 +262,15 @@ try {
 
 	console.log("Initializing shadcn...");
 	execSync(
-		`${packageManager === "npm" ? "npx" : packageManager} shadcn@latest init`,
+		// Use npx for all package managers when running shadcn
+		`npx shadcn@latest init`,
 		{ stdio: "inherit" }
 	);
 
 	console.log("Adding all shadcn components...");
 	execSync(
-		`${
-			packageManager === "npm" ? "npx" : packageManager
-		} shadcn@latest add --all`,
+		// Use npx for all package managers when running shadcn
+		`npx shadcn@latest add --all`,
 		{ stdio: "inherit" }
 	);
 
