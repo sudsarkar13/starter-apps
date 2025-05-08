@@ -32,6 +32,7 @@ This guide will help you create your own CLI tool similar to `create-next-shadcn
 5. Implement your CLI logic in `cli.js`. You can use the `create-next-shadcn` code as a reference.
 
 6. Update `package.json`:
+
    - Add the `bin` field:
 
      ```json
@@ -48,61 +49,124 @@ This guide will help you create your own CLI tool similar to `create-next-shadcn
    chmod +x cli.js
    ```
 
-## Testing Locally
+## Testing Your CLI
 
-1. In your CLI project directory, run:
+### Local Testing
 
-   ```node
+1. Link your package locally:
+
+   ```sh
    npm link
    ```
 
-2. Now you can test your CLI by running:
+2. Create a test directory:
 
-   ```node
-   my-nextjs-cli project-name
+   ```sh
+   mkdir test-cli
+   cd test-cli
+   ```
+
+3. Run your CLI:
+
+   ```sh
+   npx my-nextjs-cli
+   ```
+
+### Automated Testing
+
+1. Add testing dependencies:
+
+   ```sh
+   npm install --save-dev jest @testing-library/node
+   ```
+
+2. Create a test file `cli.test.js`:
+
+   ```javascript
+   // filepath: cli.test.js
+   describe("CLI Tests", () => {
+    test("should create project successfully", () => {
+     // Add your test cases
+    });
+   });
+   ```
+
+3. Add test script to package.json:
+
+   ```json
+   {
+    "scripts": {
+     "test": "jest"
+    }
+   }
+   ```
+
+4. Run tests:
+
+   ```sh
+   npm test
    ```
 
 ## Publishing to npm
 
-1. Create an account on [npmjs.com](https://www.npmjs.com/) if you haven't already.
+### Standard Publishing
 
-2. Log in to your npm account in the terminal:
+1. Login to npm:
 
-   ```node
+   ```sh
    npm login
    ```
 
-3. Choose a unique name for your package and update it in `package.json`:
+2. Update version in package.json:
 
    ```json
-   "name": "my-unique-nextjs-cli"
+   {
+    "version": "1.0.0"
+   }
    ```
 
-4. Set the initial version (e.g., "1.0.0") in `package.json`.
+3. Publish package:
 
-5. Publish your package:
-
-   ```node
+   ```sh
    npm publish
    ```
 
-## Using Your Published CLI
+### Publishing with Tags
 
-Once published, users can run your CLI using npx:
+1. Publishing a beta version:
 
-```node
-npx my-unique-nextjs-cli project-name
+   ```sh
+   npm version 1.0.0-beta.0
+   npm publish --tag beta
+   ```
+
+2. Publishing a canary version:
+
+   ```sh
+   npm version 1.0.0-canary.0
+   npm publish --tag canary
+   ```
+
+3. Publishing stable version:
+
+   ```sh
+   npm version 1.0.0
+   npm publish --tag latest
+   ```
+
+### Installing Tagged Versions
+
+Users can install specific versions:
+
+```sh
+npx my-nextjs-cli@latest
+npx my-nextjs-cli@beta
+npx my-nextjs-cli@canary
 ```
-
-## Updating Your CLI
-
-1. Make changes to your code.
-2. Update the version in `package.json`.
-3. Run `npm publish` again.
 
 ## Best Practices
 
 1. Include clear error messages and user instructions.
 2. Handle edge cases (e.g., existing directories, missing dependencies).
 3. Provide a detailed README.md file.
-4. Consider adding comman
+4. Consider adding common options like `--help` and `--version`.
