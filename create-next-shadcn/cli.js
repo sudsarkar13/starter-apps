@@ -128,23 +128,40 @@ function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 		// Always use npx for create-next-app regardless of package manager
 		execSync(`npx create-next-app@latest .`, { stdio: "inherit" });
 
+		// After project creation, update package.json to remove packageManager field
+		const projectPackageJson = JSON.parse(
+			fs.readFileSync("package.json", "utf8")
+		);
+		delete projectPackageJson.packageManager;
+		fs.writeFileSync(
+			"package.json",
+			JSON.stringify(projectPackageJson, null, 2)
+		);
+
 		// After project creation, update package manager if not npm
 		if (packageManager !== "npm") {
 			console.log(`\nUpdating package manager to ${packageManager}...`);
 			if (packageManager === "pnpm") {
-				// Remove package-lock.json and node_modules
+				// Remove npm-specific files
 				if (fs.existsSync("package-lock.json")) {
 					fs.unlinkSync("package-lock.json");
+				}
+				if (fs.existsSync("yarn.lock")) {
+					fs.unlinkSync("yarn.lock");
 				}
 				if (fs.existsSync("node_modules")) {
 					fs.rmSync("node_modules", { recursive: true, force: true });
 				}
 				// Install with pnpm
-				execSync("pnpm install", { stdio: "inherit" });
+				execSync("pnpm import", { stdio: "inherit" }); // Convert existing lockfile
+				execSync("pnpm install --no-frozen-lockfile", { stdio: "inherit" });
 			} else if (packageManager === "yarn") {
-				// Remove package-lock.json and node_modules
+				// Remove npm-specific files
 				if (fs.existsSync("package-lock.json")) {
 					fs.unlinkSync("package-lock.json");
+				}
+				if (fs.existsSync("pnpm-lock.yaml")) {
+					fs.unlinkSync("pnpm-lock.yaml");
 				}
 				if (fs.existsSync("node_modules")) {
 					fs.rmSync("node_modules", { recursive: true, force: true });
