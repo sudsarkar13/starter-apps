@@ -202,8 +202,7 @@ async function askUserForSupabase() {
 	const prompt = new Toggle({
 		name: "supabase",
 		message:
-			"Would you like to integrate Supabase?" +
-			chalk.gray("   Use ←/→ arrows to toggle, return to confirm"),
+			"Would you like to integrate Supabase?",
 		enabled: "Yes",
 		disabled: "No",
 		styles: {
