@@ -8,47 +8,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.8] - 2024-10-14
 
 ### Changed
+
 - Modified `createProject` function to create the Next.js app in the current directory
 - Updated project setup process to handle existing `components.json` file
 - Improved error handling and user feedback during the setup process
 - Integrated Supabase with Next.js example
 
 ### Fixed
+
 - Resolved issue with `shadcn` initialization failing due to existing `components.json` file
 
 ## [1.0.7] - 2024-09-25
 
 ### Added
+
 - Support for yarn, pnpm, and bun package managers
 - Minimum Node.js version requirement (14.0.0)
 
 ### Changed
+
 - Simplified bin field in package.json
 - Updated keywords to include new package manager support
 
 ## [1.0.6] - 2024-09-25
 
 ### Added
+
 - Added `next-shadcn` command to create a Next.js project with Shadcn UI components
 - Implemented automatic setup of tailwind.config.js
 - Added all Shadcn components by default
 
 ### Changed
+
 - Updated `cli.js` to use the current directory as the project root
 
 ## [1.0.4] - 2024-09-18
 
 ### Changed
+
 - Updated `cli.js` to use the current directory as the project root
 - Simplified the `createProject` function to always use '.' for the current directory
 - Removed unnecessary command-line arguments for project name
 
 ### Fixed
+
 - Fixed issue with creating projects in non-empty directories
 
 ## [1.0.3] - 2024-09-18
 
 ### Added
+
 - Initial release of create-next-shadcn
 - Added functionality to create a Next.js project with Shadcn UI components
 - Implemented automatic setup of tailwind.config.js
@@ -57,16 +66,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.2] - 2024-09-18
 
 ### Added
+
 - Support for using '.' as the root directory
 - Ability to run in non-empty directories
 
 ### Changed
+
 - Updated CLI script to handle '.' as a valid project name
 - Modified project creation logic to work with existing directories
 
 ## [1.0.1] - 2024-09-15
 
 ### Added
+
 - Initial release of create-next-shadcn
 - Basic functionality to create a Next.js project with Shadcn UI components
 
@@ -76,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-09-14
 
 ### Added
+
 - Initial release of the CLI tool
 - Create a new Next.js project with a specified name
 - Automatically set up Tailwind CSS
