@@ -185,6 +185,26 @@ This guide provides instructions for setting up, developing, and publishing the 
    npm dist-tag rm create-next-shadcn beta
    ```
 
+### Deprecating Versions
+
+1. Deprecate a specific version:
+
+   ```sh
+   npm deprecate create-next-shadcn@"1.0.0" "Critical bug found, please upgrade to 1.0.1"
+   ```
+
+2. Deprecate a version range:
+
+   ```sh
+   npm deprecate create-next-shadcn@"<1.0.0" "Versions before 1.0.0 are no longer supported"
+   ```
+
+3. Remove deprecation:
+
+   ```sh
+   npm deprecate create-next-shadcn@"1.0.0" ""
+   ```
+
 ### Release Checklist
 
 1. Run tests:

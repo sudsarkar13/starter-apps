@@ -154,6 +154,14 @@ This guide will help you create your own CLI tool similar to `create-next-shadcn
    npm publish --tag latest
    ```
 
+### Deprecating Versions
+
+To mark a specific version as deprecated:
+
+```sh
+npm deprecate my-nextjs-cli@"1.0.0" "Critical bug found, please upgrade to 1.0.1"
+```
+
 ### Installing Tagged Versions
 
 Users can install specific versions:
