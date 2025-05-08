@@ -151,6 +151,9 @@ function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 				}
 				// Install with yarn
 				execSync("yarn install", { stdio: "inherit" });
+				execSync("corepack enable", { stdio: "inherit" });
+				execSync("yarn set version berry", { stdio: "inherit" });
+				execSync("yarn install", { stdio: "inherit" });
 			}
 		}
 	}
