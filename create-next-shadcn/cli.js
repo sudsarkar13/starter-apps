@@ -125,13 +125,34 @@ function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 	if (useSupabase) {
 		execSync(`npx create-next-app -e with-supabase .`, { stdio: "inherit" });
 	} else {
-		const pmCommand =
-			packageManager === "yarn"
-				? "npx create-next-app@latest" // Use npx for yarn
-				: packageManager === "pnpm"
-				? "pnpm create next-app@latest"
-				: "npx create-next-app@latest";
-		execSync(`${pmCommand} .`, { stdio: "inherit" });
+		// Always use npx for create-next-app regardless of package manager
+		execSync(`npx create-next-app@latest .`, { stdio: "inherit" });
+
+		// After project creation, update package manager if not npm
+		if (packageManager !== "npm") {
+			console.log(`\nUpdating package manager to ${packageManager}...`);
+			if (packageManager === "pnpm") {
+				// Remove package-lock.json and node_modules
+				if (fs.existsSync("package-lock.json")) {
+					fs.unlinkSync("package-lock.json");
+				}
+				if (fs.existsSync("node_modules")) {
+					fs.rmSync("node_modules", { recursive: true, force: true });
+				}
+				// Install with pnpm
+				execSync("pnpm install", { stdio: "inherit" });
+			} else if (packageManager === "yarn") {
+				// Remove package-lock.json and node_modules
+				if (fs.existsSync("package-lock.json")) {
+					fs.unlinkSync("package-lock.json");
+				}
+				if (fs.existsSync("node_modules")) {
+					fs.rmSync("node_modules", { recursive: true, force: true });
+				}
+				// Install with yarn
+				execSync("yarn install", { stdio: "inherit" });
+			}
+		}
 	}
 
 	process.chdir(projectPath);
@@ -201,8 +222,7 @@ async function askForProjectType() {
 async function askUserForSupabase() {
 	const prompt = new Toggle({
 		name: "supabase",
-		message:
-			"Would you like to integrate Supabase?",
+		message: "Would you like to integrate Supabase?",
 		enabled: "Yes",
 		disabled: "No",
 		styles: {
