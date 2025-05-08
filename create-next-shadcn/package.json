@@ -19,7 +19,6 @@
     "npx",
     "yarn",
     "pnpm",
-    "bun",
     "packages",
     "bundler",
     "next-shadcn-starter",
