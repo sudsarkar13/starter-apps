@@ -1,6 +1,6 @@
 {
   "name": "create-next-shadcn",
-  "version": "1.0.9-canary.0",
+  "version": "1.0.9-canary.1",
   "description": "A CLI tool to quickly set up a Next.js project with Shadcn UI components.",
   "main": "cli.js",
   "type": "module",
@@ -32,8 +32,8 @@
   },
   "homepage": "https://github.com/sudsarkar13/starter-apps#readme",
   "bin": {
-    "create-next-shadcn": "./cli.js",
-    "create-next-app-shadcn": "./cli.js"
+    "create-next-shadcn": "cli.js",
+    "create-next-app-shadcn": "cli.js"
   },
   "engines": {
     "node": ">=14.0.0"
