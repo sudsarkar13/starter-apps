@@ -5,6 +5,80 @@ import fs from "fs";
 import path from "path";
 import readline from "readline";
 import semver from "semver";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+// Get package.json for version info
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+	fs.readFileSync(path.join(__dirname, "package.json"), "utf8")
+);
+
+// Add help text
+function showHelp() {
+	console.log(`
+create-next-shadcn v${packageJson.version}
+
+A CLI tool to quickly set up a Next.js project with Shadcn UI components.
+
+Usage:
+  npx create-next-shadcn [options]
+
+Options:
+  -h, --help     Show this help message
+  -v, --version  Show version number
+  
+Commands:
+  npx create-next-shadcn         Create a new Next.js project with Shadcn UI
+  npx create-next-shadcn --help  Show help information
+
+Examples:
+  # Create a new project
+  npx create-next-shadcn
+
+  # Show version
+  npx create-next-shadcn --version
+
+Features:
+  • Next.js setup with Shadcn UI
+  • Tailwind CSS configuration
+  • All Shadcn UI components
+  • Monorepo support
+  • Supabase integration (optional)
+  • Multiple package manager support (npm, yarn, pnpm)
+
+For more information, visit: ${packageJson.homepage}
+`);
+	process.exit(0);
+}
+
+// Add version display
+function showVersion() {
+	console.log(`create-next-shadcn v${packageJson.version}`);
+	process.exit(0);
+}
+
+// Parse command line arguments
+function parseArgs() {
+	const args = process.argv.slice(2);
+	if (args.length > 0) {
+		switch (args[0]) {
+			case "--help":
+			case "-h":
+				showHelp();
+				break;
+			case "--version":
+			case "-v":
+				showVersion();
+				break;
+			default:
+				console.error(`Unknown option: ${args[0]}`);
+				console.log("Use --help to see available options");
+				process.exit(1);
+		}
+	}
+}
 
 console.log("Setting up your Next.js project with shadcn...");
 
@@ -128,6 +202,9 @@ function askForProjectType() {
 }
 
 try {
+	// Parse command line arguments first
+	parseArgs();
+
 	// Check Node.js version first
 	checkNodeVersion();
 
