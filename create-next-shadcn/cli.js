@@ -290,16 +290,19 @@ function showSpinner(text) {
 
 // Package manager selection
 async function askForPackageManager() {
+	const instructionsText = "   Use ↑/↓ arrows to select, return to confirm";
 	const prompt = new Select({
 		name: "package-manager",
-		message:
-			"Choose a package manager:" +
-			chalk.gray("   Use ↑/↓ arrows to select, return to confirm"),
+		message: "Choose a package manager:" + chalk.gray(instructionsText),
 		choices: ["npm", "yarn", "pnpm"],
 		styles: {
 			primary: chalk.cyan,
 			selected: chalk.green,
 			pointer: () => chalk.green("❯"),
+		},
+		onRender() {
+			// Hide instructions after selection
+			this.msg = this.msg.replace(instructionsText, "");
 		},
 	});
 
@@ -309,11 +312,10 @@ async function askForPackageManager() {
 
 // Project type selection
 async function askForProjectType() {
+	const instructionsText = "   Use ↑/↓ arrows to select, return to confirm";
 	const prompt = new Select({
 		name: "project-type",
-		message:
-			"Choose project type:" +
-			chalk.gray("   Use ↑/↓ arrows to select, return to confirm"),
+		message: "Choose project type:" + chalk.gray(instructionsText),
 		choices: [
 			{ name: "standard", message: "Next.js" },
 			{ name: "monorepo", message: "Next.js (Monorepo)" },
@@ -322,6 +324,10 @@ async function askForProjectType() {
 			primary: chalk.cyan,
 			selected: chalk.green,
 			pointer: () => chalk.green("❯"),
+		},
+		onRender() {
+			// Hide instructions after selection
+			this.msg = this.msg.replace(instructionsText, "");
 		},
 	});
 
