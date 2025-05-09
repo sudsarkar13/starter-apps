@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import chalk from "chalk";
 import pkg from "enquirer";
+import os from "os";
 
 const { Select, Toggle } = pkg;
 
@@ -277,10 +278,23 @@ async function createProject(
 		const installCommands = {
 			npm: "npm install",
 			yarn: "yarn install",
-			pnpm: "pnpm install",
+			pnpm: "pnpm install --prefer-offline --strict-peer-dependencies",
 		};
 
-		execSync(installCommands[packageManager], { stdio: "inherit" });
+		// Add environment variables to force package manager
+		const env = {
+			...process.env,
+			npm_config_user_agent: packageManager,
+			YARN_IGNORE_PATH: "1",
+			YARN_IGNORE_COREPACK: "1",
+			PNPM_HOME:
+				process.env.PNPM_HOME || path.join(os.homedir(), ".local/share/pnpm"),
+		};
+
+		execSync(installCommands[packageManager], {
+			stdio: "inherit",
+			env: env,
+		});
 
 		if (packageManager === "yarn") {
 			console.log(chalk.cyan("\nUpgrading Yarn..."));
