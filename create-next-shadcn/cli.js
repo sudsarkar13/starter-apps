@@ -470,10 +470,127 @@ try {
 
 	try {
 		console.log(chalk.cyan("Initializing shadcn..."));
-		execSync(`npx shadcn@latest init`, { stdio: "inherit" });
 
+		// Set up base environment variables for shadcn
+		const shadcnEnv = {
+			...process.env,
+			npm_config_user_agent: packageManager,
+			NODE_ENV: "development",
+			npm_config_registry: "https://registry.npmjs.org/",
+		};
+
+		// Special handling for Yarn
+		if (packageManager === "yarn") {
+			console.log(chalk.cyan("Configuring Yarn for shadcn compatibility..."));
+			try {
+				// Enable corepack for proper Yarn version management
+				execSync("corepack enable", {
+					stdio: "inherit",
+					env: shadcnEnv,
+				});
+
+				// Prepare and switch to classic version
+				execSync("corepack prepare yarn@1.22.19 --activate", {
+					stdio: "inherit",
+					env: shadcnEnv,
+				});
+
+				// Clean Yarn cache to prevent version conflicts
+				execSync("yarn cache clean", {
+					stdio: "inherit",
+					env: shadcnEnv,
+				});
+			} catch (err) {
+				console.warn(
+					chalk.yellow(
+						"Warning: Failed to configure Yarn version. Proceeding with default version."
+					)
+				);
+			}
+		}
+
+		// Execute shadcn init with proper flags
+		execSync(
+			`npx shadcn@latest init ${
+				packageManager === "pnpm"
+					? "--force-install --package-manager pnpm"
+					: ""
+			}`,
+			{
+				stdio: "inherit",
+				env: shadcnEnv,
+				cwd: process.cwd(),
+			}
+		);
+
+		// Install shadcn dependencies with the correct package manager
+		const shadcnDeps = [
+			"class-variance-authority",
+			"lucide-react",
+			"clsx",
+			"tailwind-merge",
+		];
+
+		console.log(chalk.cyan("Adding shadcn dependencies..."));
+
+		const installCmd =
+			packageManager === "pnpm"
+				? `pnpm add ${shadcnDeps.join(
+						" "
+				  )} --prefer-offline --strict-peer-dependencies`
+				: packageManager === "yarn"
+				? `yarn add ${shadcnDeps.join(" ")}`
+				: `npm install ${shadcnDeps.join(" ")}`;
+
+		execSync(installCmd, {
+			stdio: "inherit",
+			env: shadcnEnv,
+			cwd: process.cwd(),
+		});
+
+		// Add all shadcn components
 		console.log(chalk.cyan("Adding shadcn components..."));
-		execSync(`npx shadcn@latest add --all`, { stdio: "inherit" });
+		execSync(
+			`npx shadcn@latest add --all ${
+				packageManager === "pnpm"
+					? "--force-install --package-manager pnpm"
+					: "--yes"
+			}`,
+			{
+				stdio: "inherit",
+				env: shadcnEnv,
+				cwd: process.cwd(),
+			}
+		);
+
+		if (packageManager === "yarn") {
+			console.log(chalk.cyan("Restoring Yarn Berry..."));
+			try {
+				// Switch back to Berry
+				execSync("corepack prepare yarn@stable --activate", {
+					stdio: "inherit",
+					env: {
+						...shadcnEnv,
+						YARN_ENABLE_IMMUTABLE_INSTALLS: "false",
+					},
+				});
+
+				// Final install to ensure everything is properly linked
+				execSync("yarn install", {
+					stdio: "inherit",
+					env: {
+						...shadcnEnv,
+						YARN_ENABLE_IMMUTABLE_INSTALLS: "false",
+					},
+				});
+			} catch (err) {
+				console.warn(
+					chalk.yellow(
+						"Warning: Failed to restore Yarn Berry. You may need to run 'yarn set version berry' manually."
+					)
+				);
+			}
+		}
 	} catch (err) {
 		throw new CLIError(`Failed to setup shadcn: ${err.message}`, 3);
 	}
