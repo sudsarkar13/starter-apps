@@ -175,15 +175,31 @@ async function setupMonorepo(projectPath, packageManager) {
 
 // Setup Next.js application
 async function setupNextApp(useSupabase, packageManager, projectName = "web") {
+	// Force the use of selected package manager by setting env variables
+	const env = {
+		...process.env,
+		FORCE_COLOR: "1",
+		npm_config_user_agent: packageManager, // Override user agent
+		NEXT_IGNORE_YARN_WORKSPACE: "1", // Ignore yarn workspace settings
+		YARN_IGNORE_PATH: "1", // Ignore yarn path
+		YARN_IGNORE_COREPACK: "1", // Ignore corepack
+	};
+
+	const execOptions = {
+		stdio: "inherit",
+		env: env,
+		shell: true,
+	};
+
 	if (useSupabase) {
 		execSync(
-			`npx create-next-app@latest ${projectName} -e with-supabase --use-${packageManager}`,
-			{ stdio: "inherit" }
+			`npx create-next-app@latest ${projectName} -e with-supabase --use-${packageManager} --no-workspace`,
+			execOptions
 		);
 	} else {
 		execSync(
-			`npx create-next-app@latest ${projectName} --use-${packageManager}`,
-			{ stdio: "inherit" }
+			`npx create-next-app@latest ${projectName} --use-${packageManager} --no-workspace`,
+			execOptions
 		);
 	}
 
@@ -204,6 +220,8 @@ async function createProject(
 	const currentDir = process.cwd();
 	const projectPath = currentDir;
 	const tempDir = path.join(projectPath, ".temp-setup");
+	const parentPackageJsonPath = path.join(__dirname, "package.json");
+	let originalPackageManager = null;
 
 	try {
 		console.log(
@@ -216,6 +234,21 @@ async function createProject(
 
 		// Set up cleanup handlers
 		setupCleanupHandlers(tempDir);
+
+		// Temporarily remove packageManager from parent package.json
+		if (fs.existsSync(parentPackageJsonPath)) {
+			const parentPackageJson = JSON.parse(
+				fs.readFileSync(parentPackageJsonPath, "utf8")
+			);
+			if (parentPackageJson.packageManager) {
+				originalPackageManager = parentPackageJson.packageManager;
+				delete parentPackageJson.packageManager;
+				fs.writeFileSync(
+					parentPackageJsonPath,
+					JSON.stringify(parentPackageJson, null, 2)
+				);
+			}
+		}
 
 		if (isMonorepo) {
 			await setupMonorepo(projectPath, packageManager);
@@ -266,6 +299,18 @@ async function createProject(
 		process.chdir(projectPath);
 	} catch (error) {
 		throw new CLIError(`Failed to create project: ${error.message}`, 2);
+	} finally {
+		// Restore original packageManager in parent package.json
+		if (originalPackageManager && fs.existsSync(parentPackageJsonPath)) {
+			const parentPackageJson = JSON.parse(
+				fs.readFileSync(parentPackageJsonPath, "utf8")
+			);
+			parentPackageJson.packageManager = originalPackageManager;
+			fs.writeFileSync(
+				parentPackageJsonPath,
+				JSON.stringify(parentPackageJson, null, 2)
+			);
+		}
 	}
 }
 
