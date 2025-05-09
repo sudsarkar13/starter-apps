@@ -300,10 +300,6 @@ async function askForPackageManager() {
 			selected: chalk.green,
 			pointer: () => chalk.green("❯"),
 		},
-		onRender() {
-			// Hide instructions after selection
-			this.msg = this.msg.replace(instructionsText, "");
-		},
 	});
 
 	const answer = await prompt.run();
@@ -324,10 +320,6 @@ async function askForProjectType() {
 			primary: chalk.cyan,
 			selected: chalk.green,
 			pointer: () => chalk.green("❯"),
-		},
-		onRender() {
-			// Hide instructions after selection
-			this.msg = this.msg.replace(instructionsText, "");
 		},
 	});
 
