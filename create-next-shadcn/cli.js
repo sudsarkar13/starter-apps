@@ -9,6 +9,14 @@ import { dirname } from "path";
 import chalk from "chalk";
 import pkg from "enquirer";
 
+class CLIError extends Error {
+	constructor(message, code = 1) {
+		super(message);
+		this.name = "CLIError";
+		this.code = code;
+	}
+}
+
 const { Select, Toggle } = pkg;
 
 // Get package.json for version info
@@ -49,7 +57,7 @@ Features:
   • All Shadcn UI components
   • Monorepo support
   • Supabase integration (optional)
-  • Multiple package manager support (npm, yarn, pnpm)
+  • Multiple package manager support (npm, yarn)
 
 For more information, visit: ${packageJson.homepage}
 `);
@@ -110,74 +118,111 @@ module.exports = {
 
 function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 	const currentDir = process.cwd();
-	const projectPath = currentDir;
+	let nextAppDir = currentDir;
 
-	console.log(
-		`Setting up your Next.js project with shadcn in ${projectPath}...`
-	);
-
-	if (isMonorepo) {
-		fs.mkdirSync("apps", { recursive: true });
-		process.chdir("apps");
-	}
-
-	// Create Next.js app
-	if (useSupabase) {
-		execSync(`npx create-next-app -e with-supabase .`, { stdio: "inherit" });
-	} else {
-		// Always use npx for create-next-app regardless of package manager
-		execSync(`npx create-next-app@latest .`, { stdio: "inherit" });
-
-		// After project creation, update package.json to remove packageManager field
-		const projectPackageJson = JSON.parse(
-			fs.readFileSync("package.json", "utf8")
-		);
-		delete projectPackageJson.packageManager;
-		fs.writeFileSync(
-			"package.json",
-			JSON.stringify(projectPackageJson, null, 2)
+	try {
+		console.log(
+			`\nSetting up your Next.js project with shadcn in ${projectName}...`
 		);
 
-		// After project creation, update package manager if not npm
-		if (packageManager !== "npm") {
-			console.log(`\nUpdating package manager to ${packageManager}...`);
-			if (packageManager === "pnpm") {
-				// Remove npm-specific files
+		if (isMonorepo) {
+			// Setup Turborepo structure first
+			setupTurboRepo(packageManager);
+			process.chdir("apps");
+			nextAppDir = path.join(currentDir, "apps", "web");
+		}
+
+		// Create project directory for the app
+		const appDir = isMonorepo ? "web" : ".";
+		if (appDir !== ".") {
+			fs.mkdirSync(appDir, { recursive: true });
+			process.chdir(appDir);
+		}
+
+		// Create Next.js app
+		if (useSupabase) {
+			execSync(`npx create-next-app -e with-supabase .`, { stdio: "inherit" });
+		} else {
+			// Always use npx for create-next-app regardless of package manager
+			execSync(`npx create-next-app@latest .`, { stdio: "inherit" });
+
+			// After project creation, update package.json
+			const projectPackageJson = JSON.parse(
+				fs.readFileSync("package.json", "utf8")
+			);
+			delete projectPackageJson.packageManager;
+			if (isMonorepo) {
+				projectPackageJson.name = "@repo/web";
+			}
+			fs.writeFileSync(
+				"package.json",
+				JSON.stringify(projectPackageJson, null, 2)
+			);
+
+			// After project creation, update package manager if not npm
+			if (packageManager === "yarn") {
 				if (fs.existsSync("package-lock.json")) {
 					fs.unlinkSync("package-lock.json");
-				}
-				if (fs.existsSync("yarn.lock")) {
-					fs.unlinkSync("yarn.lock");
 				}
 				if (fs.existsSync("node_modules")) {
 					fs.rmSync("node_modules", { recursive: true, force: true });
 				}
-				// Install with pnpm
-				execSync("pnpm import", { stdio: "inherit" }); // Convert existing lockfile
-				execSync("pnpm install --no-frozen-lockfile", { stdio: "inherit" });
-			} else if (packageManager === "yarn") {
-				// Remove npm-specific files
-				if (fs.existsSync("package-lock.json")) {
-					fs.unlinkSync("package-lock.json");
-				}
-				if (fs.existsSync("pnpm-lock.yaml")) {
-					fs.unlinkSync("pnpm-lock.yaml");
-				}
-				if (fs.existsSync("node_modules")) {
-					fs.rmSync("node_modules", { recursive: true, force: true });
-				}
-				// Install with yarn
 				execSync("yarn install", { stdio: "inherit" });
 				console.log(`\nEnabling Corepack to upgrade Yarn in the project...`);
 				execSync("corepack enable", { stdio: "inherit" });
 				execSync("yarn set version berry", { stdio: "inherit" });
 				execSync("yarn install", { stdio: "inherit" });
-				execSync("yarn", { stdio: "inherit" });
 			}
 		}
-	}
 
-	process.chdir(projectPath);
+		// Initialize shadcn in the Next.js app directory
+		if (!fs.existsSync("tailwind.config.js")) {
+			createTailwindConfig();
+		}
+
+		if (fs.existsSync("components.json")) {
+			fs.unlinkSync("components.json");
+			console.log("Removed existing components.json");
+		}
+
+		console.log("Initializing shadcn...");
+		execSync(`npx shadcn@latest init`, { stdio: "inherit" });
+
+		console.log("Adding all shadcn components...");
+		execSync(`npx shadcn@latest add --all`, { stdio: "inherit" });
+
+		// For monorepo, create shared UI package
+		if (isMonorepo) {
+			process.chdir(currentDir);
+			const uiDir = "packages/ui";
+			fs.mkdirSync(uiDir, { recursive: true });
+
+			const uiPackageJson = {
+				name: "@repo/ui",
+				version: "0.0.0",
+				private: true,
+				main: "./index.ts",
+				types: "./index.ts",
+				scripts: {
+					lint: "eslint .",
+					build: "tsup",
+				},
+			};
+
+			fs.writeFileSync(
+				path.join(uiDir, "package.json"),
+				JSON.stringify(uiPackageJson, null, 2)
+			);
+			console.log(chalk.green("✓ Created UI package"));
+		}
+
+		// Return to project root
+		process.chdir(currentDir);
+	} catch (error) {
+		// Handle errors and cleanup
+		process.chdir(currentDir);
+		throw new CLIError(`Failed to create project: ${error.message}`, 2);
+	}
 }
 
 // Version check utility
@@ -206,7 +251,7 @@ async function askForPackageManager() {
 		message:
 			"Choose a package manager:" +
 			chalk.gray("   Use ↑/↓ arrows to select, return to confirm"),
-		choices: ["npm", "yarn", "pnpm"],
+		choices: ["npm", "yarn"],
 		styles: {
 			primary: chalk.cyan,
 			selected: chalk.green,
@@ -257,6 +302,70 @@ async function askUserForSupabase() {
 	return await prompt.run();
 }
 
+function setupTurboRepo(packageManager) {
+	const turboConfig = {
+		$schema: "https://turborepo.org/schema.json",
+		pipeline: {
+			build: {
+				dependsOn: ["^build"],
+				outputs: [".next/**", "dist/**"],
+			},
+			dev: {
+				cache: false,
+				persistent: true,
+			},
+			lint: {
+				outputs: [],
+			},
+			test: {
+				dependsOn: ["build"],
+				inputs: [
+					"src/**/*.tsx",
+					"src/**/*.ts",
+					"test/**/*.ts",
+					"test/**/*.tsx",
+				],
+			},
+		},
+	};
+
+	// Create root package.json for monorepo
+	const rootPackageJson = {
+		name: "shadcn-turborepo",
+		version: "1.0.0",
+		private: true,
+		workspaces: ["apps/*", "packages/*"],
+		scripts: {
+			build: "turbo run build",
+			dev: "turbo run dev",
+			lint: "turbo run lint",
+			test: "turbo run test",
+		},
+	};
+
+	// Create necessary directories
+	fs.mkdirSync("apps", { recursive: true });
+	fs.mkdirSync("packages", { recursive: true });
+
+	// Write turbo.json
+	fs.writeFileSync("turbo.json", JSON.stringify(turboConfig, null, 2));
+	console.log(chalk.green("✓ Created turbo.json"));
+
+	// Write root package.json
+	fs.writeFileSync("package.json", JSON.stringify(rootPackageJson, null, 2));
+	console.log(chalk.green("✓ Created root package.json"));
+
+	// Install turborepo
+	console.log("\nInitializing Turborepo...");
+	if (packageManager === "yarn") {
+		execSync("yarn add turbo -W -D", { stdio: "inherit" });
+	} else {
+		execSync("npm install turbo -D", { stdio: "inherit" });
+	}
+
+	console.log(chalk.green("\n✓ Turborepo initialized successfully"));
+}
+
 try {
 	// Parse command line arguments first
 	parseArgs();
@@ -291,7 +400,7 @@ try {
 	);
 	console.log(chalk.cyan("-------------------\n"));
 
-	// Start installation with progress indicator
+	// Start installation with spinner
 	const spinner = showSpinner("Creating project");
 
 	createProject(projectName, useSupabase, packageManager, isMonorepo);
@@ -321,16 +430,38 @@ try {
 		{ stdio: "inherit" }
 	);
 
-	console.log("\n✨ Setup completed successfully!");
-	console.log(
-		`\nYour new project is ready in the '${projectName}${
-			isMonorepo ? "/apps" : ""
-		}' directory.`
-	);
-	console.log("To start developing, run:");
-	console.log(`  cd ${isMonorepo ? "apps/" : ""}${projectName}`);
-	console.log(`  ${packageManager} run dev`);
+	// Setup Turborepo if monorepo
+	if (isMonorepo) {
+		setupTurboRepo(packageManager);
+	}
+
+	console.log(chalk.green("\n✨ Setup completed successfully!"));
+	if (isMonorepo) {
+		console.log(chalk.green("\nMonorepo structure created:"));
+		console.log(chalk.cyan("  apps/web          ") + "- Next.js application");
+		console.log(chalk.cyan("  packages/ui       ") + "- Shared UI components");
+		console.log("\nTo start developing, run:");
+		console.log(`  ${packageManager} run dev`);
+		console.log("\nOther available commands:");
+		console.log(
+			`  ${packageManager} run build  - Build all applications and packages`
+		);
+		console.log(
+			`  ${packageManager} run lint   - Lint all applications and packages`
+		);
+		console.log(
+			`  ${packageManager} run test   - Test all applications and packages`
+		);
+	} else {
+		console.log(`\nYour new project is ready in '${projectName}'`);
+		console.log("\nTo start developing, run:");
+		console.log(`  ${packageManager} run dev`);
+	}
 } catch (error) {
-	console.error("\n❌ Error:", error.message);
+	if (error instanceof CLIError) {
+		console.error(chalk.red(`\n❌ Error ${error.code}: ${error.message}`));
+		process.exit(error.code);
+	}
+	console.error(chalk.red("\n❌ Unexpected error:"), error);
 	process.exit(1);
 }
