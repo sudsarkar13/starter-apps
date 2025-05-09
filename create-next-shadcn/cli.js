@@ -11,6 +11,46 @@ import pkg from "enquirer";
 
 const { Select, Toggle } = pkg;
 
+// Custom error class for CLI operations
+class CLIError extends Error {
+	constructor(message, code = 1) {
+		super(message);
+		this.name = "CLIError";
+		this.code = code;
+	}
+}
+
+// Cleanup function for handling interruptions and errors
+function cleanup(tempDir) {
+	if (fs.existsSync(tempDir)) {
+		try {
+			fs.rmSync(tempDir, { recursive: true, force: true });
+			console.log(chalk.yellow("\nCleaned up temporary files"));
+		} catch (err) {
+			console.error(chalk.red("\nFailed to clean up:", err.message));
+		}
+	}
+}
+
+// Handle process termination
+function setupCleanupHandlers(tempDir) {
+	process.on("SIGINT", () => {
+		console.log(chalk.yellow("\nReceived SIGINT - Cleaning up..."));
+		cleanup(tempDir);
+		process.exit(0);
+	});
+	process.on("SIGTERM", () => {
+		console.log(chalk.yellow("\nReceived SIGTERM - Cleaning up..."));
+		cleanup(tempDir);
+		process.exit(0);
+	});
+	process.on("uncaughtException", (err) => {
+		console.error(chalk.red("\nUncaught Exception:"), err);
+		cleanup(tempDir);
+		process.exit(1);
+	});
+}
+
 // Get package.json for version info
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -108,76 +148,125 @@ module.exports = {
 	console.log("Created tailwind.config.js");
 }
 
-function createProject(projectName, useSupabase, packageManager, isMonorepo) {
+// Monorepo setup with Turborepo
+async function setupMonorepo(projectPath, packageManager) {
+	console.log(chalk.cyan("\nInitializing Turborepo..."));
+
+	// Create monorepo with proper package manager
+	execSync(`npx create-turbo@latest . --use-${packageManager} --skip-install`, {
+		stdio: "inherit",
+	});
+
+	// Update root package.json
+	const rootPackageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+	rootPackageJson.packageManager = `${packageManager}@latest`;
+	fs.writeFileSync("package.json", JSON.stringify(rootPackageJson, null, 2));
+
+	// Create necessary directories
+	["apps", "packages"].forEach((dir) => {
+		if (!fs.existsSync(dir)) {
+			fs.mkdirSync(dir, { recursive: true });
+		}
+	});
+
+	// Move to apps directory
+	process.chdir("apps");
+}
+
+// Setup Next.js application
+async function setupNextApp(useSupabase, packageManager, projectName = "web") {
+	if (useSupabase) {
+		execSync(
+			`npx create-next-app@latest ${projectName} -e with-supabase --use-${packageManager}`,
+			{ stdio: "inherit" }
+		);
+	} else {
+		execSync(
+			`npx create-next-app@latest ${projectName} --use-${packageManager}`,
+			{ stdio: "inherit" }
+		);
+	}
+
+	// Update app package.json
+	process.chdir(projectName);
+	const appPackageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+	delete appPackageJson.packageManager; // Remove to use workspace setting
+	fs.writeFileSync("package.json", JSON.stringify(appPackageJson, null, 2));
+}
+
+// Main project creation function
+async function createProject(
+	projectName,
+	useSupabase,
+	packageManager,
+	isMonorepo
+) {
 	const currentDir = process.cwd();
 	const projectPath = currentDir;
+	const tempDir = path.join(projectPath, ".temp-setup");
 
-	console.log(
-		`Setting up your Next.js project with shadcn in ${projectPath}...`
-	);
-
-	if (isMonorepo) {
-		fs.mkdirSync("apps", { recursive: true });
-		process.chdir("apps");
-	}
-
-	// Create Next.js app
-	if (useSupabase) {
-		execSync(`npx create-next-app -e with-supabase .`, { stdio: "inherit" });
-	} else {
-		// Always use npx for create-next-app regardless of package manager
-		execSync(`npx create-next-app@latest .`, { stdio: "inherit" });
-
-		// After project creation, update package.json to remove packageManager field
-		const projectPackageJson = JSON.parse(
-			fs.readFileSync("package.json", "utf8")
-		);
-		delete projectPackageJson.packageManager;
-		fs.writeFileSync(
-			"package.json",
-			JSON.stringify(projectPackageJson, null, 2)
+	try {
+		console.log(
+			chalk.cyan(
+				`Setting up your ${
+					isMonorepo ? "monorepo" : "Next.js"
+				} project with shadcn in ${projectPath}...`
+			)
 		);
 
-		// After project creation, update package manager if not npm
-		if (packageManager !== "npm") {
-			console.log(`\nUpdating package manager to ${packageManager}...`);
-			if (packageManager === "pnpm") {
-				// Remove npm-specific files
-				if (fs.existsSync("package-lock.json")) {
-					fs.unlinkSync("package-lock.json");
-				}
-				if (fs.existsSync("yarn.lock")) {
-					fs.unlinkSync("yarn.lock");
-				}
-				if (fs.existsSync("node_modules")) {
-					fs.rmSync("node_modules", { recursive: true, force: true });
-				}
-				// Install with pnpm
-				execSync("pnpm import", { stdio: "inherit" }); // Convert existing lockfile
-				execSync("pnpm install --no-frozen-lockfile", { stdio: "inherit" });
-			} else if (packageManager === "yarn") {
-				// Remove npm-specific files
-				if (fs.existsSync("package-lock.json")) {
-					fs.unlinkSync("package-lock.json");
-				}
-				if (fs.existsSync("pnpm-lock.yaml")) {
-					fs.unlinkSync("pnpm-lock.yaml");
-				}
-				if (fs.existsSync("node_modules")) {
-					fs.rmSync("node_modules", { recursive: true, force: true });
-				}
-				// Install with yarn
-				execSync("yarn install", { stdio: "inherit" });
-				console.log(`\nEnabling Corepack to upgrade Yarn in the project...`);
-				execSync("corepack enable", { stdio: "inherit" });
-				execSync("yarn set version berry", { stdio: "inherit" });
-				execSync("yarn install", { stdio: "inherit" });
-				execSync("yarn", { stdio: "inherit" });
-			}
+		// Set up cleanup handlers
+		setupCleanupHandlers(tempDir);
+
+		if (isMonorepo) {
+			await setupMonorepo(projectPath, packageManager);
+			await setupNextApp(useSupabase, packageManager);
+		} else {
+			await setupNextApp(useSupabase, packageManager, ".");
 		}
-	}
 
-	process.chdir(projectPath);
+		// Clean up lock files based on package manager
+		const lockFiles = {
+			npm: ["yarn.lock", "pnpm-lock.yaml"],
+			yarn: ["package-lock.json", "pnpm-lock.yaml"],
+			pnpm: ["package-lock.json", "yarn.lock"],
+		};
+
+		lockFiles[packageManager]?.forEach((file) => {
+			if (fs.existsSync(file)) {
+				fs.unlinkSync(file);
+			}
+		});
+
+		// Install dependencies with selected package manager
+		console.log(
+			chalk.cyan(`\nInstalling dependencies with ${packageManager}...`)
+		);
+		const installCommands = {
+			npm: "npm install",
+			yarn: "yarn install",
+			pnpm: "pnpm install",
+		};
+
+		execSync(installCommands[packageManager], { stdio: "inherit" });
+
+		if (packageManager === "yarn") {
+			console.log(chalk.cyan("\nUpgrading Yarn..."));
+			execSync("corepack enable", { stdio: "inherit" });
+			execSync("yarn set version berry", { stdio: "inherit" });
+			execSync("yarn install", { stdio: "inherit" });
+			console.log(
+				chalk.cyan(
+					"\nRebuilding dependencies because it never has been before or the last one failed with Yarn..."
+				)
+			);
+			execSync("yarn", { stdio: "inherit" });
+		}
+
+		// Return to project root
+		process.chdir(projectPath);
+	} catch (error) {
+		throw new CLIError(`Failed to create project: ${error.message}`, 2);
+	}
 }
 
 // Version check utility
@@ -267,6 +356,18 @@ try {
 	const currentDir = process.cwd();
 	const projectName = path.basename(currentDir);
 
+	// Validate project directory
+	if (!isDirEmpty(currentDir)) {
+		throw new CLIError(
+			chalk.red("[ERR-002] Directory is not empty") +
+				chalk.yellow(`\nPossible solutions:
+    1. Choose an empty directory
+    2. Delete existing files
+    3. Create a new directory`),
+			2
+		);
+	}
+
 	console.log("\nNext.js + Shadcn UI Project Setup\n");
 
 	// Gather all user inputs first
@@ -294,43 +395,59 @@ try {
 	// Start installation with progress indicator
 	const spinner = showSpinner("Creating project");
 
-	createProject(projectName, useSupabase, packageManager, isMonorepo);
+	// Create project with proper error handling
+	await createProject(projectName, useSupabase, packageManager, isMonorepo);
 	clearInterval(spinner);
 	process.stdout.write("\r\n");
 
+	// Set up Tailwind if needed
 	if (!fs.existsSync("tailwind.config.js")) {
 		createTailwindConfig();
 	}
 
+	// Clean up any existing shadcn config
 	if (fs.existsSync("components.json")) {
 		fs.unlinkSync("components.json");
-		console.log("Removed existing components.json");
+		console.log(chalk.yellow("Removed existing components.json"));
 	}
 
-	console.log("Initializing shadcn...");
-	execSync(
-		// Use npx for all package managers when running shadcn
-		`npx shadcn@latest init`,
-		{ stdio: "inherit" }
-	);
+	try {
+		console.log(chalk.cyan("Initializing shadcn..."));
+		execSync(`npx shadcn@latest init`, { stdio: "inherit" });
 
-	console.log("Adding all shadcn components...");
-	execSync(
-		// Use npx for all package managers when running shadcn
-		`npx shadcn@latest add --all`,
-		{ stdio: "inherit" }
-	);
+		console.log(chalk.cyan("Adding shadcn components..."));
+		execSync(`npx shadcn@latest add --all`, { stdio: "inherit" });
+	} catch (err) {
+		throw new CLIError(`Failed to setup shadcn: ${err.message}`, 3);
+	}
 
-	console.log("\n✨ Setup completed successfully!");
-	console.log(
-		`\nYour new project is ready in the '${projectName}${
-			isMonorepo ? "/apps" : ""
-		}' directory.`
-	);
-	console.log("To start developing, run:");
-	console.log(`  cd ${isMonorepo ? "apps/" : ""}${projectName}`);
+	// Successful completion message
+	console.log(chalk.green("\n✨ Setup completed successfully!"));
+
+	const projectDir = isMonorepo ? `apps/web` : ".";
+	console.log(chalk.cyan("\nYour project is ready!"));
+	console.log("\nTo start developing, run these commands:");
+	console.log(chalk.gray("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+
+	if (isMonorepo) {
+		console.log(chalk.yellow("First, install dependencies:"));
+		console.log(`  ${packageManager} install`);
+	}
+
+	console.log(chalk.yellow("\nThen, start the development server:"));
+	console.log(`  cd ${projectName}`);
 	console.log(`  ${packageManager} run dev`);
+
+	console.log(chalk.gray("\nHappy coding! 🚀"));
 } catch (error) {
-	console.error("\n❌ Error:", error.message);
+	if (error instanceof CLIError) {
+		console.error(chalk.red(`\n${error.message}`));
+		process.exit(error.code);
+	}
+	console.error(chalk.red("\nUnexpected error:"), error.message);
 	process.exit(1);
+} finally {
+	// Clean up temporary files
+	const tempDir = path.join(process.cwd(), ".temp-setup");
+	cleanup(tempDir);
 }
