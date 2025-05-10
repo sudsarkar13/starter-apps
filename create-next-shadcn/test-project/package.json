@@ -17,8 +17,10 @@
     "node": ">=18"
   },
   "packageManager": "npm@11.3.0",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ]
+  }
 }
