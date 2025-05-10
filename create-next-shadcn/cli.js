@@ -312,7 +312,7 @@ function setupTurboRepo(projectName, packageManager) {
 
 	const createTurboCommand =
 		packageManager === "yarn"
-			? "yarn dlx create-turbo@latest"
+			? "npx create-turbo@latest"
 			: "npx create-turbo@latest";
 
 	try {
@@ -405,16 +405,16 @@ try {
 		console.log(chalk.cyan("\nAvailable commands:"));
 		console.log("┌─────────────────────────────────────────────┐");
 		console.log(
-			"│ Dev server:    " + chalk.yellow(`${packageManager} run dev     `) + "	│"
+			"│ Dev server:    " + chalk.yellow(`${packageManager} run dev     	`) + "	│"
 		);
 		console.log(
-			"│ Build:         " + chalk.yellow(`${packageManager} run build   `) + "	│"
+			"│ Build:         " + chalk.yellow(`${packageManager} run build   	`) + "	│"
 		);
 		console.log(
-			"│ Lint:          " + chalk.yellow(`${packageManager} run lint    `) + "	│"
+			"│ Lint:          " + chalk.yellow(`${packageManager} run lint    	`) + "	│"
 		);
 		console.log(
-			"│ Test:          " + chalk.yellow(`${packageManager} run test    `) + "	│"
+			"│ Test:          " + chalk.yellow(`${packageManager} run test    	`) + "	│"
 		);
 		console.log("└─────────────────────────────────────────────┘");
 
