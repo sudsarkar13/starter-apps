@@ -140,13 +140,11 @@ function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 
 		// Create Next.js app
 		console.log("\nCreating Next.js application...");
-		if (useSupabase) {
-			execSync("npx create-next-app@latest . -e with-supabase", {
-				stdio: "inherit",
-			});
-		} else {
-			execSync("npx create-next-app@latest .", { stdio: "inherit" });
-		}
+		const createNextCommand = useSupabase
+			? "npx create-next-app@latest . -e with-supabase --use-" + packageManager
+			: "npx create-next-app@latest . --use-" + packageManager;
+
+		execSync(createNextCommand, { stdio: "inherit" });
 
 		// Update package.json for the Next.js app
 		const appPackageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
@@ -166,13 +164,14 @@ function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 			fs.unlinkSync("components.json");
 		}
 
+		// Initialize shadcn
 		execSync("npx shadcn@latest init --yes", { stdio: "inherit" });
 
 		// Install dependencies with legacy peer deps for React 19
 		const installCommand =
 			packageManager === "yarn"
-				? "yarn add --legacy-peer-deps @radix-ui/react-icons"
-				: "npm install --legacy-peer-deps @radix-ui/react-icons";
+				? "yarn add --legacy-peer-deps class-variance-authority lucide-react clsx tailwind-merge @radix-ui/react-icons"
+				: "npm install --legacy-peer-deps class-variance-authority lucide-react clsx tailwind-merge @radix-ui/react-icons";
 
 		execSync(installCommand, { stdio: "inherit" });
 		execSync("npx shadcn@latest add --all --yes", { stdio: "inherit" });
@@ -310,14 +309,19 @@ async function askUserForSupabase() {
 function setupTurboRepo(projectName, packageManager) {
 	console.log("\nInitializing Turborepo...");
 
-	const createTurboCommand =
-		packageManager === "yarn"
-			? "npx create-turbo@latest"
-			: "npx create-turbo@latest";
-
 	try {
-		// Create new turborepo using official create-turbo
-		execSync(`${createTurboCommand} .`, {
+		// Create empty yarn.lock first if using yarn
+		if (packageManager === "yarn") {
+			fs.writeFileSync("yarn.lock", "");
+		}
+
+		const createTurboCommand =
+			packageManager === "yarn"
+				? "npx create-turbo@latest"
+				: "npx create-turbo@latest";
+
+		// Create new turborepo using official create-turbo with --no-install flag
+		execSync(`${createTurboCommand} . --no-install`, {
 			stdio: "inherit",
 		});
 
@@ -327,25 +331,34 @@ function setupTurboRepo(projectName, packageManager) {
 		rootPackageJson.private = true;
 
 		// Ensure workspaces are configured correctly
+		rootPackageJson.workspaces = ["apps/*", "packages/*"];
+
+		// For yarn, add additional workspace config
 		if (packageManager === "yarn") {
-			rootPackageJson.workspaces = ["apps/*", "packages/*"];
-		} else {
-			rootPackageJson.workspaces = {
-				packages: ["apps/*", "packages/*"],
+			rootPackageJson.packageManager = "yarn@1.22.19"; // Specify yarn version
+			rootPackageJson.installConfig = {
+				hoistingLimits: "workspaces",
 			};
 		}
 
 		fs.writeFileSync("package.json", JSON.stringify(rootPackageJson, null, 2));
 		console.log(chalk.green("✓ Root package.json updated"));
 
-		return process.cwd(); // Return current directory since we're already in project root
+		// Initialize yarn/npm in the root directory
+		const initCommand = packageManager === "yarn" ? "yarn" : "npm install";
+		execSync(initCommand, { stdio: "inherit" });
+
+		return process.cwd();
 	} catch (error) {
 		// Add cleanup on error
 		if (fs.existsSync("node_modules")) {
 			fs.rmSync("node_modules", { recursive: true, force: true });
 		}
+		if (fs.existsSync("yarn.lock")) {
+			fs.unlinkSync("yarn.lock");
+		}
 		throw new CLIError(
-			`Failed to initialize Turborepo: ${error.message}\nPossible solutions:\n1. Ensure you have write permissions\n2. Try clearing the npm cache\n3. Check your internet connection`,
+			`Failed to initialize Turborepo: ${error.message}\nPossible solutions:\n1. Ensure you have write permissions\n2. Try clearing yarn/npm cache\n3. Check your internet connection\n4. Try removing any existing yarn.lock or package-lock.json`,
 			2
 		);
 	}
