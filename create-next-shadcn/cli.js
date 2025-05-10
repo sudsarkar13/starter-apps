@@ -117,90 +117,74 @@ module.exports = {
 }
 
 function createProject(projectName, useSupabase, packageManager, isMonorepo) {
-	const currentDir = process.cwd();
-	let nextAppDir = currentDir;
-
 	try {
-		console.log(
-			`\nSetting up your Next.js project with shadcn in ${projectName}...`
-		);
+		const currentDir = process.cwd();
+		let nextAppDir = currentDir;
+		let projectRoot = currentDir;
 
 		if (isMonorepo) {
-			// Setup Turborepo structure first
-			setupTurboRepo(packageManager);
-			process.chdir("apps");
-			nextAppDir = path.join(currentDir, "apps", "web");
-		}
+			// Create Turborepo structure using create-turbo
+			projectRoot = setupTurboRepo(projectName, packageManager);
+			nextAppDir = path.join(projectRoot, "apps/web");
 
-		// Create project directory for the app
-		const appDir = isMonorepo ? "web" : ".";
-		if (appDir !== ".") {
-			fs.mkdirSync(appDir, { recursive: true });
-			process.chdir(appDir);
+			// Clean up default web app to prepare for our Next.js + shadcn setup
+			if (fs.existsSync(nextAppDir)) {
+				fs.rmSync(nextAppDir, { recursive: true, force: true });
+			}
+
+			// Ensure apps directory exists
+			fs.mkdirSync(path.join(projectRoot, "apps"), { recursive: true });
+			fs.mkdirSync(nextAppDir, { recursive: true });
+			process.chdir(nextAppDir);
 		}
 
 		// Create Next.js app
+		console.log("\nCreating Next.js application...");
 		if (useSupabase) {
-			execSync(`npx create-next-app -e with-supabase .`, { stdio: "inherit" });
+			execSync("npx create-next-app@latest . -e with-supabase", {
+				stdio: "inherit",
+			});
 		} else {
-			// Always use npx for create-next-app regardless of package manager
-			execSync(`npx create-next-app@latest .`, { stdio: "inherit" });
-
-			// After project creation, update package.json
-			const projectPackageJson = JSON.parse(
-				fs.readFileSync("package.json", "utf8")
-			);
-			delete projectPackageJson.packageManager;
-			if (isMonorepo) {
-				projectPackageJson.name = "@repo/web";
-			}
-			fs.writeFileSync(
-				"package.json",
-				JSON.stringify(projectPackageJson, null, 2)
-			);
-
-			// After project creation, update package manager if not npm
-			if (packageManager === "yarn") {
-				if (fs.existsSync("package-lock.json")) {
-					fs.unlinkSync("package-lock.json");
-				}
-				if (fs.existsSync("node_modules")) {
-					fs.rmSync("node_modules", { recursive: true, force: true });
-				}
-				execSync("yarn install", { stdio: "inherit" });
-				console.log(`\nEnabling Corepack to upgrade Yarn in the project...`);
-				execSync("corepack enable", { stdio: "inherit" });
-				execSync("yarn set version berry", { stdio: "inherit" });
-				execSync("yarn install", { stdio: "inherit" });
-			}
+			execSync("npx create-next-app@latest .", { stdio: "inherit" });
 		}
 
-		// Initialize shadcn in the Next.js app directory
+		// Update package.json for the Next.js app
+		const appPackageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+		if (isMonorepo) {
+			appPackageJson.name = "@" + projectName + "/web";
+		}
+		delete appPackageJson.packageManager;
+		fs.writeFileSync("package.json", JSON.stringify(appPackageJson, null, 2));
+
+		// Initialize shadcn
+		console.log("\nInitializing shadcn...");
 		if (!fs.existsSync("tailwind.config.js")) {
 			createTailwindConfig();
 		}
 
 		if (fs.existsSync("components.json")) {
 			fs.unlinkSync("components.json");
-			console.log("Removed existing components.json");
 		}
-		console.log("Initializing shadcn...");
-		execSync(`npx shadcn@latest init --yes`, { stdio: "inherit" });
 
-		console.log("Adding all shadcn components...");
-		execSync(`npm install --legacy-peer-deps @radix-ui/react-icons`, {
-			stdio: "inherit",
-		});
-		execSync(`npx shadcn@latest add --all --yes`, { stdio: "inherit" });
+		execSync("npx shadcn@latest init --yes", { stdio: "inherit" });
 
-		// For monorepo, create shared UI package
+		// Install dependencies with legacy peer deps for React 19
+		const installCommand =
+			packageManager === "yarn"
+				? "yarn add --legacy-peer-deps @radix-ui/react-icons"
+				: "npm install --legacy-peer-deps @radix-ui/react-icons";
+
+		execSync(installCommand, { stdio: "inherit" });
+		execSync("npx shadcn@latest add --all --yes", { stdio: "inherit" });
+
 		if (isMonorepo) {
-			process.chdir(currentDir);
-			const uiDir = "packages/ui";
+			// Set up shared UI package
+			console.log("\nSetting up shared UI package...");
+			const uiDir = path.join(projectRoot, "packages/ui");
 			fs.mkdirSync(uiDir, { recursive: true });
 
 			const uiPackageJson = {
-				name: "@repo/ui",
+				name: "@" + projectName + "/ui",
 				version: "0.0.0",
 				private: true,
 				main: "./index.ts",
@@ -209,21 +193,40 @@ function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 					lint: "eslint .",
 					build: "tsup",
 				},
+				peerDependencies: {
+					react: "^18.0.0",
+					"react-dom": "^18.0.0",
+				},
 			};
 
 			fs.writeFileSync(
 				path.join(uiDir, "package.json"),
 				JSON.stringify(uiPackageJson, null, 2)
 			);
-			console.log(chalk.green("✓ Created UI package"));
+
+			// Create base UI package files
+			fs.writeFileSync(
+				path.join(uiDir, "index.ts"),
+				"export * from './components';\n"
+			);
+
+			// Create components directory
+			fs.mkdirSync(path.join(uiDir, "components"), { recursive: true });
+			console.log(chalk.green("✓ UI package initialized"));
+
+			// Return to project root
+			process.chdir(projectRoot);
+
+			// Install root dependencies
+			console.log("\nInstalling project dependencies...");
+			const rootInstallCmd =
+				packageManager === "yarn" ? "yarn install" : "npm install";
+			execSync(rootInstallCmd, { stdio: "inherit" });
 		}
 
-		// Return to project root
-		process.chdir(currentDir);
+		console.log(chalk.green("\n✓ Project setup completed successfully"));
 	} catch (error) {
-		// Handle errors and cleanup
-		process.chdir(currentDir);
-		throw new CLIError(`Failed to create project: ${error.message}`, 2);
+		throw new CLIError(`Project creation failed: ${error.message}`, 2);
 	}
 }
 
@@ -304,68 +307,44 @@ async function askUserForSupabase() {
 	return await prompt.run();
 }
 
-function setupTurboRepo(packageManager) {
-	const turboConfig = {
-		$schema: "https://turborepo.org/schema.json",
-		pipeline: {
-			build: {
-				dependsOn: ["^build"],
-				outputs: [".next/**", "dist/**"],
-			},
-			dev: {
-				cache: false,
-				persistent: true,
-			},
-			lint: {
-				outputs: [],
-			},
-			test: {
-				dependsOn: ["build"],
-				inputs: [
-					"src/**/*.tsx",
-					"src/**/*.ts",
-					"test/**/*.ts",
-					"test/**/*.tsx",
-				],
-			},
-		},
-	};
-
-	// Create root package.json for monorepo
-	const rootPackageJson = {
-		name: "shadcn-turborepo",
-		version: "1.0.0",
-		private: true,
-		workspaces: ["apps/web/*", "packages/*"],
-		scripts: {
-			build: "turbo run build",
-			dev: "turbo run dev",
-			lint: "turbo run lint",
-			test: "turbo run test",
-		},
-	};
-
-	// Create necessary directories
-	fs.mkdirSync("apps", { recursive: true });
-	fs.mkdirSync("packages", { recursive: true });
-
-	// Write turbo.json
-	fs.writeFileSync("turbo.json", JSON.stringify(turboConfig, null, 2));
-	console.log(chalk.green("✓ Created turbo.json"));
-
-	// Write root package.json
-	fs.writeFileSync("package.json", JSON.stringify(rootPackageJson, null, 2));
-	console.log(chalk.green("✓ Created root package.json"));
-
-	// Install turborepo
+function setupTurboRepo(projectName, projectRoot, packageManager) {
 	console.log("\nInitializing Turborepo...");
-	if (packageManager === "yarn") {
-		execSync("yarn add turbo -W -D", { stdio: "inherit" });
-	} else {
-		execSync("npm install turbo -D", { stdio: "inherit" });
-	}
 
-	console.log(chalk.green("\n✓ Turborepo initialized successfully"));
+	const createTurboCommand =
+		packageManager === "yarn"
+			? "yarn dlx create-turbo@latest"
+			: "npx create-turbo@latest";
+
+	try {
+		// Create new turborepo using official create-turbo
+		execSync(`${createTurboCommand} ${projectRoot} --skip-install`, {
+			stdio: "inherit",
+		});
+
+		// Move into project directory
+		process.chdir(projectName);
+
+		// Update package.json to use workspace syntax
+		const rootPackageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+		rootPackageJson.name = projectName;
+		rootPackageJson.private = true;
+
+		// Ensure workspaces are configured correctly
+		if (packageManager === "yarn") {
+			rootPackageJson.workspaces = ["apps/*", "packages/*"];
+		} else {
+			rootPackageJson.workspaces = {
+				packages: ["apps/*", "packages/*"],
+			};
+		}
+
+		fs.writeFileSync("package.json", JSON.stringify(rootPackageJson, null, 2));
+		console.log(chalk.green("✓ Root package.json updated"));
+
+		return process.cwd();
+	} catch (error) {
+		throw new CLIError(`Failed to initialize Turborepo: ${error.message}`, 2);
+	}
 }
 
 try {
@@ -409,12 +388,8 @@ try {
 	clearInterval(spinner);
 	process.stdout.write("\r\n");
 
-	// Setup Turborepo if monorepo
-	if (isMonorepo) {
-		setupTurboRepo(packageManager);
-	}
-
 	console.log(chalk.green("\n✨ Setup completed successfully!"));
+
 	if (isMonorepo) {
 		console.log(chalk.green("\nMonorepo structure created:"));
 		console.log(
@@ -423,34 +398,37 @@ try {
 		);
 		console.log(chalk.cyan("  packages/ui       ") + "- Shared UI components");
 
-		console.log("\nNext steps:");
-		console.log("1. Install dependencies:");
-		console.log(chalk.cyan(`   ${packageManager} install`));
-
-		console.log("\n2. Start the development server:");
-		console.log(chalk.cyan(`   ${packageManager} run dev`));
-
-		console.log("\nAvailable commands:");
-		console.log(chalk.yellow("  dev   ") + "- Start the development server");
+		console.log(chalk.cyan("\nAvailable commands:"));
+		console.log("┌─────────────────────────────────────────────┐");
 		console.log(
-			chalk.yellow("  build ") + "- Build all applications and packages"
+			"│ Dev server:    " + chalk.yellow(`${packageManager} run dev     `) + "│"
 		);
 		console.log(
-			chalk.yellow("  lint  ") + "- Lint all applications and packages"
+			"│ Build:         " + chalk.yellow(`${packageManager} run build   `) + "│"
 		);
 		console.log(
-			chalk.yellow("  test  ") + "- Test all applications and packages"
+			"│ Lint:          " + chalk.yellow(`${packageManager} run lint    `) + "│"
 		);
+		console.log(
+			"│ Test:          " + chalk.yellow(`${packageManager} run test    `) + "│"
+		);
+		console.log("└─────────────────────────────────────────────┘");
 
-		console.log("\nTo add more Shadcn UI components later:");
+		console.log(chalk.cyan("\nTo add more Shadcn UI components:"));
 		console.log("1. Change to the web app directory:");
-		console.log(chalk.cyan("   cd apps/web"));
-		console.log("2. Add components using shadcn-ui:");
-		console.log(chalk.cyan("   npx shadcn@latest add [component-name]"));
+		console.log(chalk.yellow("   cd apps/web"));
+		console.log("2. Add components using shadcn:");
+		console.log(chalk.yellow("   npx shadcn@latest add [component-name]"));
+
+		console.log(chalk.cyan("\nTo start developing:"));
+		console.log(chalk.yellow(`   ${packageManager} run dev`));
+		console.log("This will start all applications in development mode");
 	} else {
-		console.log(`\nYour new project is ready in '${projectName}'`);
-		console.log("\nTo start developing, run:");
-		console.log(chalk.cyan(`  ${packageManager} run dev`));
+		console.log(chalk.cyan("\nTo start developing:"));
+		console.log(chalk.yellow(`   ${packageManager} run dev`));
+
+		console.log(chalk.cyan("\nTo add more Shadcn UI components:"));
+		console.log(chalk.yellow("   npx shadcn@latest add [component-name]"));
 	}
 } catch (error) {
 	if (error instanceof CLIError) {
