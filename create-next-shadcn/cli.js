@@ -307,7 +307,7 @@ async function askUserForSupabase() {
 	return await prompt.run();
 }
 
-function setupTurboRepo(projectName, projectRoot, packageManager) {
+function setupTurboRepo(projectName, packageManager) {
 	console.log("\nInitializing Turborepo...");
 
 	const createTurboCommand =
@@ -317,7 +317,7 @@ function setupTurboRepo(projectName, projectRoot, packageManager) {
 
 	try {
 		// Create new turborepo using official create-turbo
-		execSync(`${createTurboCommand} ${projectRoot} --skip-install`, {
+		execSync(`${createTurboCommand} . --skip-install`, {
 			stdio: "inherit",
 		});
 
