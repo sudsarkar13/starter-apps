@@ -184,12 +184,14 @@ function createProject(projectName, useSupabase, packageManager, isMonorepo) {
 			fs.unlinkSync("components.json");
 			console.log("Removed existing components.json");
 		}
-
 		console.log("Initializing shadcn...");
-		execSync(`npx shadcn@latest init`, { stdio: "inherit" });
+		execSync(`npx shadcn@latest init --yes`, { stdio: "inherit" });
 
 		console.log("Adding all shadcn components...");
-		execSync(`npx shadcn@latest add --all`, { stdio: "inherit" });
+		execSync(`npm install --legacy-peer-deps @radix-ui/react-icons`, {
+			stdio: "inherit",
+		});
+		execSync(`npx shadcn@latest add --all --yes`, { stdio: "inherit" });
 
 		// For monorepo, create shared UI package
 		if (isMonorepo) {
@@ -334,7 +336,7 @@ function setupTurboRepo(packageManager) {
 		name: "shadcn-turborepo",
 		version: "1.0.0",
 		private: true,
-		workspaces: ["apps/*", "packages/*"],
+		workspaces: ["apps/web/*", "packages/*"],
 		scripts: {
 			build: "turbo run build",
 			dev: "turbo run dev",
@@ -407,29 +409,6 @@ try {
 	clearInterval(spinner);
 	process.stdout.write("\r\n");
 
-	if (!fs.existsSync("tailwind.config.js")) {
-		createTailwindConfig();
-	}
-
-	if (fs.existsSync("components.json")) {
-		fs.unlinkSync("components.json");
-		console.log("Removed existing components.json");
-	}
-
-	console.log("Initializing shadcn...");
-	execSync(
-		// Use npx for all package managers when running shadcn
-		`npx shadcn@latest init`,
-		{ stdio: "inherit" }
-	);
-
-	console.log("Adding all shadcn components...");
-	execSync(
-		// Use npx for all package managers when running shadcn
-		`npx shadcn@latest add --all`,
-		{ stdio: "inherit" }
-	);
-
 	// Setup Turborepo if monorepo
 	if (isMonorepo) {
 		setupTurboRepo(packageManager);
@@ -438,24 +417,40 @@ try {
 	console.log(chalk.green("\n✨ Setup completed successfully!"));
 	if (isMonorepo) {
 		console.log(chalk.green("\nMonorepo structure created:"));
-		console.log(chalk.cyan("  apps/web          ") + "- Next.js application");
+		console.log(
+			chalk.cyan("  apps/web          ") +
+				"- Next.js application with Shadcn UI"
+		);
 		console.log(chalk.cyan("  packages/ui       ") + "- Shared UI components");
-		console.log("\nTo start developing, run:");
-		console.log(`  ${packageManager} run dev`);
-		console.log("\nOther available commands:");
+
+		console.log("\nNext steps:");
+		console.log("1. Install dependencies:");
+		console.log(chalk.cyan(`   ${packageManager} install`));
+
+		console.log("\n2. Start the development server:");
+		console.log(chalk.cyan(`   ${packageManager} run dev`));
+
+		console.log("\nAvailable commands:");
+		console.log(chalk.yellow("  dev   ") + "- Start the development server");
 		console.log(
-			`  ${packageManager} run build  - Build all applications and packages`
+			chalk.yellow("  build ") + "- Build all applications and packages"
 		);
 		console.log(
-			`  ${packageManager} run lint   - Lint all applications and packages`
+			chalk.yellow("  lint  ") + "- Lint all applications and packages"
 		);
 		console.log(
-			`  ${packageManager} run test   - Test all applications and packages`
+			chalk.yellow("  test  ") + "- Test all applications and packages"
 		);
+
+		console.log("\nTo add more Shadcn UI components later:");
+		console.log("1. Change to the web app directory:");
+		console.log(chalk.cyan("   cd apps/web"));
+		console.log("2. Add components using shadcn-ui:");
+		console.log(chalk.cyan("   npx shadcn@latest add [component-name]"));
 	} else {
 		console.log(`\nYour new project is ready in '${projectName}'`);
 		console.log("\nTo start developing, run:");
-		console.log(`  ${packageManager} run dev`);
+		console.log(chalk.cyan(`  ${packageManager} run dev`));
 	}
 } catch (error) {
 	if (error instanceof CLIError) {
