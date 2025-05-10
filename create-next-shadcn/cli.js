@@ -317,12 +317,9 @@ function setupTurboRepo(projectName, packageManager) {
 
 	try {
 		// Create new turborepo using official create-turbo
-		execSync(`${createTurboCommand} . --skip-install`, {
+		execSync(`${createTurboCommand} .`, {
 			stdio: "inherit",
 		});
-
-		// Move into project directory
-		process.chdir(projectName);
 
 		// Update package.json to use workspace syntax
 		const rootPackageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
@@ -341,9 +338,16 @@ function setupTurboRepo(projectName, packageManager) {
 		fs.writeFileSync("package.json", JSON.stringify(rootPackageJson, null, 2));
 		console.log(chalk.green("✓ Root package.json updated"));
 
-		return process.cwd();
+		return process.cwd(); // Return current directory since we're already in project root
 	} catch (error) {
-		throw new CLIError(`Failed to initialize Turborepo: ${error.message}`, 2);
+		// Add cleanup on error
+		if (fs.existsSync("node_modules")) {
+			fs.rmSync("node_modules", { recursive: true, force: true });
+		}
+		throw new CLIError(
+			`Failed to initialize Turborepo: ${error.message}\nPossible solutions:\n1. Ensure you have write permissions\n2. Try clearing the npm cache\n3. Check your internet connection`,
+			2
+		);
 	}
 }
 
